@@ -1,4 +1,4 @@
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from thread_worker.entity.thread_worker import ThreadWorker
 from thread_worker.repository.thread_worker_repository import ThreadWorkerRepository
@@ -8,9 +8,12 @@ class ThreadWorkerRepositoryImpl(ThreadWorkerRepository):
     __instance = None
     __workerList = {}
 
+    __executor = None
+
     def __new__(cls):
         if cls.__instance is None:
             cls.__instance = super().__new__(cls)
+            cls.__executor = ThreadPoolExecutor(max_workers=10)
 
         return cls.__instance
 
@@ -36,9 +39,11 @@ class ThreadWorkerRepositoryImpl(ThreadWorkerRepository):
 
         executeFunction = foundThreadWorker.getWillBeExecuteFunction()
 
-        # 스레드를 실행하고, ID를 저장
-        newThread = threading.Thread(target=executeFunction)
-        newThread.start()
+        # 스레드 풀을 사용하여 작업 제출
+        future = self.__executor.submit(executeFunction)
+        foundThreadWorker.setThreadId(future)  # 실행된 스레드 ID를 스레드 워커에 저장
 
-        # 실행된 스레드 ID를 스레드 워커에 저장
-        foundThreadWorker.setThreadId(newThread.ident)
+    def shutdown(self):
+        """ThreadPoolExecutor 종료 함수"""
+        if self.__executor:
+            self.__executor.shutdown(wait=True)

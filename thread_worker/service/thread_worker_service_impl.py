@@ -28,5 +28,4 @@ class ThreadWorkerServiceImpl(ThreadWorkerService):
         self.__threadWorkerRepository.execute(name)
 
     def shutdown(self):
-        """ThreadPoolExecutor 종료 함수"""
-        self.__executor.shutdown(wait=True)
+        self.__threadWorkerRepository.shutdown()
