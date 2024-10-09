@@ -10,18 +10,16 @@ class ThreadWorkerRepositoryImpl(ThreadWorkerRepository):
 
     __executor = None
 
-    def __new__(cls):
+    def __new__(cls, max_workers=10):
         if cls.__instance is None:
             cls.__instance = super().__new__(cls)
-            cls.__executor = ThreadPoolExecutor(max_workers=10)
-
+            cls.__executor = ThreadPoolExecutor(max_workers=max_workers)
         return cls.__instance
 
     @classmethod
-    def getInstance(cls):
+    def getInstance(cls, max_workers=10):
         if cls.__instance is None:
-            cls.__instance = cls()
-
+            cls.__instance = cls(max_workers=max_workers)
         return cls.__instance
 
     def save(self, name, willBeExecuteFunction):
@@ -32,18 +30,15 @@ class ThreadWorkerRepositoryImpl(ThreadWorkerRepository):
         return self.__workerList.get(name, None)
 
     def execute(self, name):
-        """스레드 워커 실행"""
         foundThreadWorker = self.getWorker(name)
         if foundThreadWorker is None:
             raise ValueError(f"ThreadWorker with name '{name}' not found")
 
         executeFunction = foundThreadWorker.getWillBeExecuteFunction()
 
-        # 스레드 풀을 사용하여 작업 제출
         future = self.__executor.submit(executeFunction)
-        foundThreadWorker.setThreadId(future)  # 실행된 스레드 ID를 스레드 워커에 저장
+        foundThreadWorker.setThreadId(future)
 
     def shutdown(self):
-        """ThreadPoolExecutor 종료 함수"""
         if self.__executor:
             self.__executor.shutdown(wait=True)
