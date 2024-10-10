@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
+from thread_worker_pool.entity.thread_worker import ThreadWorker
 from thread_worker_pool.repository.thread_worker_pool_repository import ThreadWorkerPoolRepository
 
 
@@ -46,3 +47,23 @@ class ThreadWorkerPoolRepositoryImpl(ThreadWorkerPoolRepository):
             print(f"ThreadPool for {stage} has been shut down.")
             # 모든 풀을 종료한 후 딕셔너리에서 제거
             del self.__poolDictionary[stage]
+
+    def execute_thread_pool_worker(self, pipeline_stage, worker_func, *args):
+        pool = self.get_pool(pipeline_stage)
+        futures = []
+
+        max_workers = pool._max_workers
+
+        for i in range(max_workers):
+            worker = ThreadWorker(name=f"{pipeline_stage}Worker-{i + 1}", willBeExecuteFunction=worker_func)
+
+            if pipeline_stage == 'Receiver':
+                data_range = range(i * 20, (i + 1) * 20)
+                future = pool.submit(worker.getWillBeExecuteFunction(), i + 1, data_range)
+            else:
+                future = pool.submit(worker.getWillBeExecuteFunction(), i + 1, *args)
+
+            worker.setThreadId(future)
+            futures.append(worker)
+
+        return futures

@@ -1,20 +1,24 @@
 import time
 from queue import Empty
 
-from ipc_queue.repository.ipc_queue_repository_impl import IPCQueueRepositoryImpl
+# ThreadWorkerPoolRepositoryImpl와 IPCQueueRepositoryImpl를 불러옵니다.
 from thread_worker_pool.repository.thread_worker_pool_repository_impl import ThreadWorkerPoolRepositoryImpl
+from ipc_queue.repository.ipc_queue_repository_impl import IPCQueueRepositoryImpl
 
+# 필요한 리포지토리 인스턴스 초기화
 ipc_repo = IPCQueueRepositoryImpl.getInstance()
 ipc_repo.createEssentialIPCQueue()
 
 pool_repo = ThreadWorkerPoolRepositoryImpl.getInstance()
 
+# 스레드 풀 및 작업자 초기화
 pool_repo.create_pool('Receiver', 5)
 pool_repo.create_pool('Analyzer', 5)
 pool_repo.create_pool('Executor', 6)
 pool_repo.create_pool('Transmitter', 2)
 
 received_data = []
+
 
 def receiver(receiver_id, data_range):
     for i in data_range:
@@ -23,6 +27,7 @@ def receiver(receiver_id, data_range):
         ipc_repo.getIPCReceiverAnalyzerChannel().put(data)
         print(f"Receiver-{receiver_id}: Data sent to Analyzer -> {data}")
         time.sleep(0.1)
+
 
 def analyzer(analyzer_id):
     while True:
@@ -33,6 +38,7 @@ def analyzer(analyzer_id):
         except Empty:
             break
 
+
 def executor(executor_id):
     while True:
         try:
@@ -42,6 +48,7 @@ def executor(executor_id):
             ipc_repo.getIPCExecutorTransmitterChannel().put(data)
         except Empty:
             break
+
 
 def transmitter(transmitter_id):
     while True:
@@ -57,36 +64,36 @@ def transmitter(transmitter_id):
         except Empty:
             break
 
-receiver_pool = pool_repo.get_pool('Receiver')
-analyzer_pool = pool_repo.get_pool('Analyzer')
-executor_pool = pool_repo.get_pool('Executor')
-transmitter_pool = pool_repo.get_pool('Transmitter')
 
-receiver_futures = []
-for i in range(5):
-    data_range = range(i * 20, (i + 1) * 20)
-    receiver_futures.append(receiver_pool.submit(receiver, i + 1, data_range))
+def main():
+    # 각 단계별로 작업자들을 스레드 풀에서 실행
+    receiver_futures = pool_repo.execute_thread_pool_worker('Receiver', receiver)
+    analyzer_futures = pool_repo.execute_thread_pool_worker('Analyzer', analyzer)
+    executor_futures = pool_repo.execute_thread_pool_worker('Executor', executor)
+    transmitter_futures = pool_repo.execute_thread_pool_worker('Transmitter', transmitter)
 
-analyzer_futures = [analyzer_pool.submit(analyzer, i + 1) for i in range(5)]
-executor_futures = [executor_pool.submit(executor, i + 1) for i in range(6)]
-transmitter_futures = [transmitter_pool.submit(transmitter, i + 1) for i in range(2)]
+    try:
+        while True:
+            unique_received_data = set(received_data)
+            print(f"현재 수신된 데이터 수: {len(unique_received_data)} (예상: 100)")
 
-try:
-    while True:
-        unique_received_data = set(received_data)
-        print(f"현재 수신된 데이터 수: {len(unique_received_data)} (예상: 100)")
+            if len(unique_received_data) >= 100:
+                print("무결성 확인: 모든 데이터가 성공적으로 수신되었습니다. 프로그램을 종료합니다.")
 
-        if len(unique_received_data) >= 100:
-            print("무결성 확인: 모든 데이터가 성공적으로 수신되었습니다. 프로그램을 종료합니다.")
+                # Transmitter 종료 신호 전송
+                for _ in range(2):
+                    ipc_repo.getIPCExecutorTransmitterChannel().put(None)
 
-            for _ in range(2):
-                ipc_repo.getIPCExecutorTransmitterChannel().put(None)
+                break
 
-            break
+            time.sleep(10)
 
-        time.sleep(10)
+    except KeyboardInterrupt:
+        print("프로그램 종료 요청을 받았습니다.")
 
-except KeyboardInterrupt:
-    print("프로그램 종료 요청을 받았습니다.")
+    # 모든 스레드 풀 종료
+    pool_repo.shutdown_all()
 
-pool_repo.shutdown_all()
+
+if __name__ == "__main__":
+    main()
