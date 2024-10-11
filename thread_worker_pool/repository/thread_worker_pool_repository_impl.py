@@ -41,12 +41,12 @@ class ThreadWorkerPoolRepositoryImpl(ThreadWorkerPoolRepository):
         worker_pool.setWillBeExecuteFunction(willBeExecuteFunction)
         print(f"Function allocated to ThreadPool for {pipeline_stage}")
 
-    def get_pool(self, pipeline_stage):
+    def getPool(self, pipeline_stage):
         if pipeline_stage not in self.__poolDictionary:
             raise ValueError(f"No ThreadPool found for {pipeline_stage}")
         return self.__poolDictionary[pipeline_stage]
 
-    def shutdown_pool(self, pipeline_stage):
+    def shutdownPool(self, pipeline_stage):
         if pipeline_stage in self.__poolDictionary:
             self.__poolDictionary[pipeline_stage].shutdown(wait=True)
             print(f"ThreadPool for {pipeline_stage} has been shut down.")
@@ -55,14 +55,14 @@ class ThreadWorkerPoolRepositoryImpl(ThreadWorkerPoolRepository):
         else:
             raise ValueError(f"No ThreadPool found for {pipeline_stage}")
 
-    def shutdown_all(self):
+    def shutdownAll(self):
         for stage, pool_info in list(self.__poolDictionary.items()):
             executor = pool_info["executor"]
             executor.shutdown(wait=True)
             print(f"ThreadPool for {stage} has been shut down.")
             del self.__poolDictionary[stage]
 
-    def execute_thread_pool_worker(self, pipeline_stage, *args):
+    def executeThreadPoolWorker(self, pipeline_stage, *args):
         print(f"ThreadPool for {pipeline_stage} has been started.")
         pool_info = self.__poolDictionary.get(pipeline_stage)
 

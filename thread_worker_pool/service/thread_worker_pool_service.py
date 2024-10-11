@@ -1,22 +1,26 @@
+# thread_worker_pool/service/thread_worker_pool_service.py
+
 from abc import ABC, abstractmethod
 
+
 class ThreadWorkerPoolService(ABC):
+
     @abstractmethod
-    def createThreadWorkerPool(self, pool_name, max_workers):
+    def createThreadWorkerPool(self, pipeline_stage: str, max_workers: int):
         pass
 
     @abstractmethod
-    def createThreadWorker(self, worker_name, task):
+    def allocateExecuteFunction(self, pipeline_stage: str, function):
         pass
 
     @abstractmethod
-    def executeThreadWorkerPool(self, pool_name, worker_name):
+    def executeThreadPoolWorker(self, pipeline_stage: str, *args):
         pass
 
     @abstractmethod
-    def shutdownAllThreadWorkerPools(self):
+    def shutdownPool(self, pipeline_stage: str):
         pass
 
     @abstractmethod
-    def shutdownThreadWorkerPool(self, pool_name):
+    def shutdownAll(self):
         pass

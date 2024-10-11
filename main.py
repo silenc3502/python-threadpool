@@ -4,17 +4,19 @@ from queue import Empty
 # ThreadWorkerPoolRepositoryImpl와 IPCQueueRepositoryImpl를 불러옵니다.
 from thread_worker_pool.repository.thread_worker_pool_repository_impl import ThreadWorkerPoolRepositoryImpl
 from ipc_queue.repository.ipc_queue_repository_impl import IPCQueueRepositoryImpl
+from thread_worker_pool.service.thread_worker_pool_service_impl import ThreadWorkerPoolServiceImpl
 
 # 필요한 리포지토리 인스턴스 초기화
 ipc_repo = IPCQueueRepositoryImpl.getInstance()
 ipc_repo.createEssentialIPCQueue()
 
-pool_repo = ThreadWorkerPoolRepositoryImpl.getInstance()
+# pool_repo = ThreadWorkerPoolRepositoryImpl.getInstance()
+threadWorkerPoolService = ThreadWorkerPoolServiceImpl.getInstance()
 
-pool_repo.createThreadWorkerPool('Receiver', 5)
-pool_repo.createThreadWorkerPool('Analyzer', 5)
-pool_repo.createThreadWorkerPool('Executor', 6)
-pool_repo.createThreadWorkerPool('Transmitter', 2)
+threadWorkerPoolService.createThreadWorkerPool('Receiver', 5)
+threadWorkerPoolService.createThreadWorkerPool('Analyzer', 5)
+threadWorkerPoolService.createThreadWorkerPool('Executor', 6)
+threadWorkerPoolService.createThreadWorkerPool('Transmitter', 2)
 
 received_data = []
 
@@ -73,15 +75,15 @@ def transmitter(transmitter_id):
 
 
 def main():
-    pool_repo.allocateExecuteFunction('Receiver', receiver)
-    pool_repo.allocateExecuteFunction('Analyzer', analyzer)
-    pool_repo.allocateExecuteFunction('Executor', executor)
-    pool_repo.allocateExecuteFunction('Transmitter', transmitter)
+    threadWorkerPoolService.allocateExecuteFunction('Receiver', receiver)
+    threadWorkerPoolService.allocateExecuteFunction('Analyzer', analyzer)
+    threadWorkerPoolService.allocateExecuteFunction('Executor', executor)
+    threadWorkerPoolService.allocateExecuteFunction('Transmitter', transmitter)
 
-    receiver_futures = pool_repo.execute_thread_pool_worker('Receiver')
-    analyzer_futures = pool_repo.execute_thread_pool_worker('Analyzer')
-    executor_futures = pool_repo.execute_thread_pool_worker('Executor')
-    transmitter_futures = pool_repo.execute_thread_pool_worker('Transmitter')
+    receiver_futures = threadWorkerPoolService.executeThreadPoolWorker('Receiver')
+    analyzer_futures = threadWorkerPoolService.executeThreadPoolWorker('Analyzer')
+    executor_futures = threadWorkerPoolService.executeThreadPoolWorker('Executor')
+    transmitter_futures = threadWorkerPoolService.executeThreadPoolWorker('Transmitter')
 
     try:
         while True:
@@ -103,7 +105,7 @@ def main():
         print("프로그램 종료 요청을 받았습니다.")
 
     # 모든 스레드 풀 종료
-    pool_repo.shutdown_all()
+    threadWorkerPoolService.shutdownAll()
 
 
 if __name__ == "__main__":

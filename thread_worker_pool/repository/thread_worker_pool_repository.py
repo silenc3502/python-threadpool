@@ -12,13 +12,13 @@ class ThreadWorkerPoolRepository(ABC):
         pass
 
     @abstractmethod
-    def get_pool(self, pipeline_stage):
+    def getPool(self, pipeline_stage):
         pass
 
     @abstractmethod
-    def shutdown_pool(self, pipeline_stage):
+    def shutdownPool(self, pipeline_stage):
         pass
 
     @abstractmethod
-    def shutdown_all(self):
+    def shutdownAll(self):
         pass
