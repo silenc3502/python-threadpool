@@ -11,17 +11,24 @@ ipc_repo.createEssentialIPCQueue()
 
 pool_repo = ThreadWorkerPoolRepositoryImpl.getInstance()
 
-# 스레드 풀 및 작업자 초기화
-pool_repo.create_pool('Receiver', 5)
-pool_repo.create_pool('Analyzer', 5)
-pool_repo.create_pool('Executor', 6)
-pool_repo.create_pool('Transmitter', 2)
+pool_repo.createThreadWorkerPool('Receiver', 5)
+pool_repo.createThreadWorkerPool('Analyzer', 5)
+pool_repo.createThreadWorkerPool('Executor', 6)
+pool_repo.createThreadWorkerPool('Transmitter', 2)
 
 received_data = []
 
 
-def receiver(receiver_id, data_range):
-    for i in data_range:
+def receiver(receiver_id):
+    print(f"Receiver-{receiver_id} has started.")
+    max_data = 100
+    chunk_size = 20
+    num_receivers = max_data // chunk_size
+
+    start = (receiver_id - 1) * chunk_size
+    end = start + chunk_size if receiver_id < num_receivers else max_data
+
+    for i in range(start, end):
         data = f"data_{i}"
         print(f"Receiver-{receiver_id}: Sending data -> {data}")
         ipc_repo.getIPCReceiverAnalyzerChannel().put(data)
@@ -44,7 +51,7 @@ def executor(executor_id):
         try:
             data = ipc_repo.getIPCAnalyzerExecutorChannel().get(timeout=2)
             print(f"Executor-{executor_id}: Processing data -> {data}")
-            time.sleep(5)
+            time.sleep(2)
             ipc_repo.getIPCExecutorTransmitterChannel().put(data)
         except Empty:
             break
@@ -66,11 +73,15 @@ def transmitter(transmitter_id):
 
 
 def main():
-    # 각 단계별로 작업자들을 스레드 풀에서 실행
-    receiver_futures = pool_repo.execute_thread_pool_worker('Receiver', receiver)
-    analyzer_futures = pool_repo.execute_thread_pool_worker('Analyzer', analyzer)
-    executor_futures = pool_repo.execute_thread_pool_worker('Executor', executor)
-    transmitter_futures = pool_repo.execute_thread_pool_worker('Transmitter', transmitter)
+    pool_repo.allocateExecuteFunction('Receiver', receiver)
+    pool_repo.allocateExecuteFunction('Analyzer', analyzer)
+    pool_repo.allocateExecuteFunction('Executor', executor)
+    pool_repo.allocateExecuteFunction('Transmitter', transmitter)
+
+    receiver_futures = pool_repo.execute_thread_pool_worker('Receiver')
+    analyzer_futures = pool_repo.execute_thread_pool_worker('Analyzer')
+    executor_futures = pool_repo.execute_thread_pool_worker('Executor')
+    transmitter_futures = pool_repo.execute_thread_pool_worker('Transmitter')
 
     try:
         while True:
@@ -86,7 +97,7 @@ def main():
 
                 break
 
-            time.sleep(10)
+            time.sleep(5)
 
     except KeyboardInterrupt:
         print("프로그램 종료 요청을 받았습니다.")

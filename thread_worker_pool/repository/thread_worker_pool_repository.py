@@ -4,7 +4,11 @@ from concurrent.futures import ThreadPoolExecutor
 class ThreadWorkerPoolRepository(ABC):
 
     @abstractmethod
-    def create_pool(self, pipeline_stage, max_workers):
+    def createThreadWorkerPool(self, pipeline_stage, max_workers):
+        pass
+
+    @abstractmethod
+    def allocateExecuteFunction(self, pipeline_stage, willBeExecuteFunction):
         pass
 
     @abstractmethod
